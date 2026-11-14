@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protocol Simulator</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div class="page-container">
+
+    <!-- DASHBOARD: Sidebar | Sim Window | Right Panel -->
+    <section class="sim-dashboard-view">
+
+      <!-- LEFT SIDEBAR -->
+      <aside class="sidebar-tile">
+
+        <div class="sidebar-header">
+          <span class="sidebar-title">Protocol Simulator</span>
+          <span class="sim-state idle" id="sim-state">Idle</span>
+        </div>
+
+        <div class="sidebar-body">
+
+          <div class="sb-group">
+            <div class="sb-label">View</div>
+            <div class="view-mode-pills">
+              <button class="view-pill active" id="ladder-tab-btn">Space-Time</button>
+              <button class="view-pill" id="stage-tab-btn">Stage</button>
+            </div>
+          </div>
+
+          <div class="sb-group">
+            <div class="sb-label">Protocol</div>
+            <select class="field-select" id="protocol-select">
+              <option value="one-bit">One-Bit (Stop &amp; Wait)</option>
+              <option value="gbn" selected>Go-Back-N</option>
+              <option value="sr">Selective Repeat</option>
+            </select>
+          </div>
+
+          <div class="sb-group">
+            <div class="sb-label">Operational Case</div>
+            <select class="field-select" id="case-select">
+              <!-- Dynamically populated based on chosen protocol -->
+            </select>
+            <div class="case-brief-box" id="case-brief-box">
+              <p class="case-brief-desc" id="case-brief-desc">Pipelined transmission within window N with cumulative ACKs.</p>
+            </div>
+          </div>
+
+          <div class="sb-divider"></div>
+
+          <div class="sb-group">
+            <div class="sb-label">Parameters</div>
+            <div class="sliders-wrap">
+
+              <div class="field-group-compact" id="window-group">
+                <div class="field-label-compact">
+                  <span>Window Size</span>
+                  <span class="field-val-compact" id="window-val">4</span>
+                </div>
+                <input class="field-range-compact" type="range" id="window-slider" min="1" max="8" value="4" />
+              </div>
+
+              <div class="field-group-compact">
+                <div class="field-label-compact">
+                  <span>Total Frames</span>
+                  <span class="field-val-compact" id="frames-val">20</span>
+                </div>
+                <input class="field-range-compact" type="range" id="frames-slider" min="5" max="40" value="20" />
+              </div>
+
+              <div class="field-group-compact">
+                <div class="field-label-compact">
+                  <span>Packet Loss</span>
+                  <span class="field-val-compact" id="pktloss-val">10%</span>
+                </div>
+                <input class="field-range-compact" type="range" id="pktloss-slider" min="0" max="60" value="10" />
+              </div>
+
+              <div class="field-group-compact">
+                <div class="field-label-compact">
+                  <span>ACK Loss</span>
+                  <span class="field-val-compact" id="ackloss-val">5%</span>
+                </div>
+                <input class="field-range-compact" type="range" id="ackloss-slider" min="0" max="60" value="5" />
+              </div>
+
+              <div class="field-group-compact">
+                <div class="field-label-compact">
+                  <span>Timeout</span>
+                  <span class="field-val-compact" id="timeout-val">300ms</span>
+                </div>
+                <input class="field-range-compact" type="range" id="timeout-slider" min="100" max="800" value="300" step="10" />
+              </div>
+
+              <div class="field-group-compact">
+                <div class="field-label-compact">
+                  <span>TX Delay</span>
+                  <span class="field-val-compact" id="txdelay-val">100ms</span>
+                </div>
+                <input class="field-range-compact" type="range" id="txdelay-slider" min="30" max="300" value="100" step="10" />
+              </div>
+
+            </div>
+          </div>
+
+          <div class="sb-divider"></div>
+
+          <div class="sb-group">
+            <div class="sb-label">Speed</div>
+            <div class="speed-pills" id="speed-pills">
+              <button class="speed-pill active" data-speed="0.5">Slow</button>
+              <button class="speed-pill" data-speed="1">1×</button>
+              <button class="speed-pill" data-speed="2">2×</button>
+            </div>
+          </div>
+
+        </div><!-- /.sidebar-body -->
+
+        <div class="sidebar-footer">
+          <button class="btn-primary" id="run-btn">Run Simulation</button>
+          <div class="btn-row-2">
+            <button class="btn-secondary" id="step-btn">Step</button>
+            <button class="btn-secondary" id="reset-btn">Reset</button>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- CENTER: Simulation Viewport -->
+      <main class="tile-box main-viewport-tile">
+        <div class="ladder-viewport" id="ladder-viewport"></div>
+        <div class="stage-viewport" id="stage-viewport" style="display:none;"></div>
+      </main>
+
+      <!-- RIGHT PANEL -->
+      <aside class="right-column">
+
+        <!-- Live Feed -->
+        <div class="tile-box feed-tile-box">
+          <div class="feed-tile-header">
+            <div class="feed-title-wrap">
+              <span class="feed-pulse-dot"></span>
+              <span class="feed-title">Transmission Log</span>
+            </div>
+            <span class="feed-status-badge" id="feed-status-badge" style="display:none;"></span>
+          </div>
+          <ul class="event-feed-list" id="event-feed-list">
+            <li class="feed-item feed-info">
+              <span class="feed-time">[0ms]</span>
+              <span class="feed-text">Ready. Configure and run a simulation.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Analytics -->
+        <div class="tile-box analytics-tile-box">
+          <div class="analytics-tile-header">
+            <span class="analytics-title">Results</span>
+          </div>
+
+          <div class="metrics-report" id="metrics-report" style="display:none;">
+            <div class="metrics-grid" id="metrics-grid"></div>
+          </div>
+
+          <div class="metrics-idle" id="metrics-idle">
+            <p class="idle-text">Run a simulation to see performance results.</p>
+          </div>
+        </div>
+
+      </aside>
+
+    </section>
+
+    <!-- SCROLL SECTION: Protocol Mechanics & Comparison -->
+    <section class="proto-guide-view">
+
+      <div class="section-divider">
+        <span class="divider-label">Protocol Mechanics</span>
+      </div>
+
+      <!-- 3 Static Protocol Cards -->
+      <div class="proto-guide-cards">
+
+        <!-- One-Bit -->
+        <div class="proto-info-card" data-proto="one-bit">
+          <div class="proto-card-header accent-lime">
+            <div class="proto-card-icon-box" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D7A4D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="4" width="4" height="16" rx="1"></rect>
+                <rect x="15" y="4" width="4" height="16" rx="1"></rect>
+              </svg>
+            </div>
+            <div class="proto-card-eyebrow">Stop-and-Wait ARQ</div>
+            <h3 class="proto-card-title">One-Bit Protocol</h3>
+            <p class="proto-card-tagline">Single in-flight frame. Alternating 0/1 sequence numbers. Simplest reliable delivery.</p>
+            <div class="proto-card-chips">
+              <span class="proto-chip">Window: 1</span>
+              <span class="proto-chip">Individual ACK</span>
+              <span class="proto-chip">No pipelining</span>
+            </div>
+            <div class="proto-card-tabs">
+              <button class="proto-tab-btn active" data-target="rules-onebit">Core Mechanics</button>
+              <button class="proto-tab-btn" data-target="cases-onebit">Cases of Operation (4)</button>
+            </div>
+          </div>
+          <div class="proto-card-body">
+            <!-- Pane 1: Rules -->
+            <div class="proto-tab-pane active" id="rules-onebit">
+              <ul class="proto-rule-list">
+                <li>Window size is strictly <strong>1 unacknowledged frame</strong> at any time.</li>
+                <li>Alternating sequence numbers <strong>0 and 1</strong> detect duplicates on retransmit.</li>
+                <li>Sender halts until an ACK arrives before transmitting the next frame.</li>
+                <li>On timeout or ACK loss, the same single frame is retransmitted.</li>
+                <li>No pipelining — lowest utilisation on high-latency links.</li>
+              </ul>
+              <div class="proto-card-spec">
+                <div class="spec-row"><span class="spec-key">Sequence space</span><span class="spec-val">2 (0, 1)</span></div>
+                <div class="spec-row"><span class="spec-key">Receiver buffer</span><span class="spec-val">1 frame</span></div>
+                <div class="spec-row"><span class="spec-key">Retransmit scope</span><span class="spec-val">Current frame only</span></div>
+              </div>
+            </div>
+
+            <!-- Pane 2: Cases of Operations -->
+            <div class="proto-tab-pane" id="cases-onebit" style="display:none;">
+              <div class="proto-cases-list">
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 1</span>
+                    <span class="case-item-title">Normal operation</span>
+                  </div>
+                  <p class="case-item-desc">Frame 0 sent &rarr; ACK 1 received &rarr; Frame 1 sent. Clean alternating bits without channel loss or timeouts.</p>
+                  <button class="btn-case-run" data-proto="one-bit" data-case="normal">Simulate Case &rarr;</button>
+                </div>
+
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 2</span>
+                    <span class="case-item-title">The frame is lost</span>
+                  </div>
+                  <p class="case-item-desc">Frame is dropped by the link. Sender timer expires and automatically triggers a retransmission of the lost frame.</p>
+                  <button class="btn-case-run" data-proto="one-bit" data-case="frame-lost">Simulate Case &rarr;</button>
+                </div>
+
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 3</span>
+                    <span class="case-item-title">The ACK is lost</span>
+                  </div>
+                  <p class="case-item-desc">Frame delivered, but ACK lost in transit. Sender times out; receiver detects duplicate sequence, discards data, and re-sends ACK.</p>
+                  <button class="btn-case-run" data-proto="one-bit" data-case="ack-lost">Simulate Case &rarr;</button>
+                </div>
+
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 4</span>
+                    <span class="case-item-title">The ACK is delayed</span>
+                  </div>
+                  <p class="case-item-desc">Channel delay exceeds sender timeout. Sender prematurely retransmits; delayed ACK arrives later and duplicate is safely absorbed.</p>
+                  <button class="btn-case-run" data-proto="one-bit" data-case="ack-delayed">Simulate Case &rarr;</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Go-Back-N -->
+        <div class="proto-info-card" data-proto="gbn">
+          <div class="proto-card-header accent-blue">
+            <div class="proto-card-icon-box" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3A4AAA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                <path d="M3 21v-5h5"></path>
+              </svg>
+            </div>
+            <div class="proto-card-eyebrow">Sliding Window ARQ</div>
+            <h3 class="proto-card-title">Go-Back-N</h3>
+            <p class="proto-card-tagline">Cumulative ACKs. Full window rollback on any loss. High throughput on clean links.</p>
+            <div class="proto-card-chips">
+              <span class="proto-chip">Window: N</span>
+              <span class="proto-chip">Cumulative ACK</span>
+              <span class="proto-chip">Discard OOO</span>
+            </div>
+            <div class="proto-card-tabs">
+              <button class="proto-tab-btn active" data-target="rules-gbn">Core Mechanics</button>
+              <button class="proto-tab-btn" data-target="cases-gbn">Cases of Operation (4)</button>
+            </div>
+          </div>
+          <div class="proto-card-body">
+            <!-- Pane 1: Rules -->
+            <div class="proto-tab-pane active" id="rules-gbn">
+              <ul class="proto-rule-list">
+                <li>Sender may have up to <strong>N frames in flight</strong> simultaneously (pipelined).</li>
+                <li>Receiver accepts only the <strong>next expected frame</strong> in strict sequence.</li>
+                <li>Out-of-order frames are <strong>discarded</strong>, even if received without error.</li>
+                <li>ACK k is cumulative — confirms all frames up to and including k.</li>
+                <li>On timeout, sender rolls back and retransmits <strong>all unACKed frames</strong>.</li>
+              </ul>
+              <div class="proto-card-spec">
+                <div class="spec-row"><span class="spec-key">Sequence space</span><span class="spec-val">2N (min)</span></div>
+                <div class="spec-row"><span class="spec-key">Receiver buffer</span><span class="spec-val">1 frame</span></div>
+                <div class="spec-row"><span class="spec-key">Retransmit scope</span><span class="spec-val">All unACKed frames</span></div>
+              </div>
+            </div>
+
+            <!-- Pane 2: Cases of Operations -->
+            <div class="proto-tab-pane" id="cases-gbn" style="display:none;">
+              <div class="proto-cases-list">
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 1</span>
+                    <span class="case-item-title">Normal operation</span>
+                  </div>
+                  <p class="case-item-desc">Continuous pipelined transmission within window N. Cumulative ACKs smoothly slide the sender base forward.</p>
+                  <button class="btn-case-run" data-proto="gbn" data-case="normal">Simulate Case &rarr;</button>
+                </div>
+
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 2</span>
+                    <span class="case-item-title">The frame is lost</span>
+                  </div>
+                  <p class="case-item-desc">Frame lost in flight. Receiver discards subsequent out-of-order frames. Sender times out and rolls back to retransmit window.</p>
+                  <button class="btn-case-run" data-proto="gbn" data-case="frame-lost">Simulate Case &rarr;</button>
+                </div>
+
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 3</span>
+                    <span class="case-item-title">The ACK is lost</span>
+                  </div>
+                  <p class="case-item-desc">Intermediate ACK lost, but subsequent cumulative ACK arrives safely. Cumulative ACKs absorb losses without rollback.</p>
+                  <button class="btn-case-run" data-proto="gbn" data-case="ack-lost">Simulate Case &rarr;</button>
+                </div>
+
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 4</span>
+                    <span class="case-item-title">Delayed ACK / Timeout</span>
+                  </div>
+                  <p class="case-item-desc">High channel delay causes base frame timer expiry. Sender rolls back and retransmits all unacknowledged frames.</p>
+                  <button class="btn-case-run" data-proto="gbn" data-case="ack-delayed">Simulate Case &rarr;</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selective Repeat -->
+        <div class="proto-info-card" data-proto="sr">
+          <div class="proto-card-header accent-coral">
+            <div class="proto-card-icon-box" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B84A2A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                <circle cx="17.5" cy="6.5" r="1.5" fill="#B84A2A"></circle>
+              </svg>
+            </div>
+            <div class="proto-card-eyebrow">Selective ARQ</div>
+            <h3 class="proto-card-title">Selective Repeat</h3>
+            <p class="proto-card-tagline">Receiver buffers out-of-order frames. Only lost frames are retransmitted.</p>
+            <div class="proto-card-chips">
+              <span class="proto-chip">Window: N</span>
+              <span class="proto-chip">Individual ACK</span>
+              <span class="proto-chip">Buffers OOO</span>
+            </div>
+            <div class="proto-card-tabs">
+              <button class="proto-tab-btn active" data-target="rules-sr">Core Mechanics</button>
+              <button class="proto-tab-btn" data-target="cases-sr">Cases of Operation (4)</button>
+            </div>
+          </div>
+          <div class="proto-card-body">
+            <!-- Pane 1: Rules -->
+            <div class="proto-tab-pane active" id="rules-sr">
+              <ul class="proto-rule-list">
+                <li>Both sender and receiver maintain an independent <strong>N-frame window</strong>.</li>
+                <li>Receiver <strong>buffers out-of-order frames</strong> that fall within its window.</li>
+                <li>Individual ACK sent for each correctly received frame (not cumulative).</li>
+                <li>Sender retransmits <strong>only the specific timed-out frame</strong>, not all unACKed.</li>
+                <li>Minimal redundant transmission — most efficient on lossy links.</li>
+              </ul>
+              <div class="proto-card-spec">
+                <div class="spec-row"><span class="spec-key">Sequence space</span><span class="spec-val">2N (required)</span></div>
+                <div class="spec-row"><span class="spec-key">Receiver buffer</span><span class="spec-val">N frames</span></div>
+                <div class="spec-row"><span class="spec-key">Retransmit scope</span><span class="spec-val">Lost frame only</span></div>
+              </div>
+            </div>
+
+            <!-- Pane 2: Cases of Operations -->
+            <div class="proto-tab-pane" id="cases-sr" style="display:none;">
+              <div class="proto-cases-list">
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 1</span>
+                    <span class="case-item-title">Normal operation</span>
+                  </div>
+                  <p class="case-item-desc">Sender pipelines N frames; receiver individually ACKs each. Windows advance independently as frames arrive.</p>
+                  <button class="btn-case-run" data-proto="sr" data-case="normal">Simulate Case &rarr;</button>
+                </div>
+
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 2</span>
+                    <span class="case-item-title">The frame is lost</span>
+                  </div>
+                  <p class="case-item-desc">Frame lost in transit. Receiver buffers subsequent frames. Sender retransmits ONLY the lost frame, avoiding redundant retransmission.</p>
+                  <button class="btn-case-run" data-proto="sr" data-case="frame-lost">Simulate Case &rarr;</button>
+                </div>
+
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 3</span>
+                    <span class="case-item-title">The ACK is lost</span>
+                  </div>
+                  <p class="case-item-desc">Individual ACK lost. Only that frame times out; sender selectively retransmits it without re-sending already-ACKed frames.</p>
+                  <button class="btn-case-run" data-proto="sr" data-case="ack-lost">Simulate Case &rarr;</button>
+                </div>
+
+                <div class="proto-case-item">
+                  <div class="case-item-top">
+                    <span class="case-badge">Case 4</span>
+                    <span class="case-item-title">Window Constraint</span>
+                  </div>
+                  <p class="case-item-desc">Demonstrates why window size cannot exceed half sequence space (W &le; 2^(m-1)) to avoid duplicate wrap-around ambiguity.</p>
+                  <button class="btn-case-run" data-proto="sr" data-case="window-constraint">Simulate Case &rarr;</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.proto-guide-cards -->
+
+      <!-- Compare button -->
+      <div class="compare-action-section">
+        <button class="btn-compare-hero" id="compare-btn">
+          Compare All Three Protocols &rarr;
+        </button>
+      </div>
+
+      <!-- In-page comparison tile -->
+      <div class="tile-box comparison-expand-tile hidden" id="comparison-section">
+        <div class="comparison-tile-header">
+          <div class="comparison-title-group">
+            <span class="modal-badge">Benchmark</span>
+            <h3 class="comparison-tile-title">Live Protocol Benchmark</h3>
+          </div>
+          <span class="comparison-tile-note">Tested under identical deterministic loss &amp; delay channel conditions</span>
+        </div>
+
+        <div class="comparison-table-wrap">
+          <table class="comparison-table" id="comparison-table">
+            <thead>
+              <tr>
+                <th>Performance Metric</th>
+                <th id="th-onebit">
+                  <div class="th-content">
+                    <span class="th-dot dot-onebit"></span>
+                    <span class="th-title">One-Bit</span>
+                    <span class="th-sub">Stop &amp; Wait (W=1)</span>
+                  </div>
+                </th>
+                <th id="th-gbn">
+                  <div class="th-content">
+                    <span class="th-dot dot-gbn"></span>
+                    <span class="th-title">Go-Back-N</span>
+                    <span class="th-sub">Sliding Window (W=N)</span>
+                  </div>
+                </th>
+                <th id="th-sr">
+                  <div class="th-content">
+                    <span class="th-dot dot-sr"></span>
+                    <span class="th-title">Selective Repeat</span>
+                    <span class="th-sub">Buffered ARQ (W=N)</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="comparison-tbody"></tbody>
+          </table>
+        </div>
+
+        <details class="comparison-raw-details">
+          <summary class="ascii-header">View Raw Terminal Report &gt;</summary>
+          <pre class="ascii-body" id="comparison-ascii-body"></pre>
+        </details>
+      </div>
+
+    </section>
+
+  </div><!-- /.page-container -->
+  <script src="js/app.bundle.js"></script>
+</body>
+</html>

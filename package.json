@@ -1,0 +1,9 @@
+{
+  "name": "devnet-simulation",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "DEVNET — Interactive Computer Networks Protocol Simulator with Apple Liquid Glass and Space-Time Ladder Visualizer",
+  "dependencies": {
+    "liquid-glass-react": "^1.1.1"
+  }
+}
