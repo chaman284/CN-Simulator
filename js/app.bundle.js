@@ -2320,6 +2320,7 @@ const stageViewportEl  = document.getElementById('stage-viewport');
 const ladderViewportEl = document.getElementById('ladder-viewport');
 const stageTabBtn      = document.getElementById('stage-tab-btn');
 const ladderTabBtn     = document.getElementById('ladder-tab-btn');
+const protocolBadge    = document.getElementById('protocol-badge');
 const simStateEl       = document.getElementById('sim-state');
 
 const metricsReportEl = document.getElementById('metrics-report');
